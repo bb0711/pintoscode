@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="fe100a8c-4ace-452e-86ef-a399356f2b98" name="pintos" url="http://143.248.140.250">
+        <fileTransfer host="143.248.140.250" port="3422" rootFolder="/root/pintos/src" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="3422" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
