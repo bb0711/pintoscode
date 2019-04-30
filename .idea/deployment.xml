@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="pintos">
+  <component name="PublishConfigData" serverName="pintos" uploadOnCheckin="fe100a8c-4ace-452e-86ef-a399356f2b98">
     <serverData>
       <paths name="pintos">
         <serverdata>
@@ -10,5 +10,6 @@
         </serverdata>
       </paths>
     </serverData>
+    <option name="myUploadOnCheckinName" value="pintos" />
   </component>
 </project>
