@@ -54,7 +54,8 @@ sup_page_init (void)
 /*
  * Make new supplementary page table entry for addr 
  */
-bool allocate_sup_page (void *addr)
+struct sup_page_table_entry *
+allocate_sup_page (void *addr)
 {
     lock_acquire(&sup_page_lock);
 
@@ -62,7 +63,7 @@ bool allocate_sup_page (void *addr)
 
     if (spte == NULL) {
         lock_release(&sup_page_lock);
-        return false;
+        return NULL;
     }
 
     spte->type = FILE;
@@ -76,10 +77,10 @@ bool allocate_sup_page (void *addr)
     struct hash_elem *h = hash_insert (&thread_current()->sup_page_table, &spte->elem);
     if (h == NULL) {
         lock_release(&sup_page_lock);
-        return false;
+        return NULL;
     }else {
         lock_release(&sup_page_lock);
-        return true;
+        return spte;
     }
 
 }

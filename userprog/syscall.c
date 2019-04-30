@@ -10,7 +10,8 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "filesys/off_t.h"
-
+#include "vm/frame.h"
+#include "vm/page.h"
 
 
 static void syscall_handler (struct intr_frame *);
@@ -199,6 +200,7 @@ open (const char *file)
   lock_release(&sys_lock);
   return -1;
 }
+
 
 int
 filesize (int fd)

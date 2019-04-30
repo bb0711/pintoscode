@@ -28,6 +28,7 @@
 #define FRAME_NUM  0xfffff000   /* Frame number */
 
 static struct lock frame_lock;
+static struct lock evict_lock;
 static struct hash frame_hash;
 
 static unsigned fr_hash_func(const struct hash_elem *elem, void *aux UNUSED)
@@ -50,6 +51,7 @@ void
 frame_init (void)
 {
     lock_init(&frame_lock);
+    lock_init(&evict_lock)
     hash_init(&frame_hash, fr_hash_func, fr_less_func, NULL);
 
 }
@@ -61,8 +63,8 @@ frame_init (void)
 
  //check the addr is not used already!!
  //: user virtual memory(addr) -> kernel va(frame)
-bool
-allocate_frame (void *addr)
+struct frame_table_entry*
+allocate_frame (void *addr, bool flag)
 {
     lock_acquire(&frame_lock);
 
@@ -70,43 +72,33 @@ allocate_frame (void *addr)
 
     if (fte== NULL){
         lock_release(&frame_lock);
-        return false;
+        return NULL;
     }
-    void *p =palloc_get_page(PAL_USER);// returns kernel virtual addr for page of user pool.
-    //fte->frame = palloc_get_page(PAL_USER | (FLAG ? PAL_ZERO: 0)
+    //void *p =palloc_get_page(PAL_USER);// returns kernel virtual addr for page of user pool.
+    void *p = palloc_get_page(PAL_USER | (flag ? PAL_ZERO: 0)
     if( p == NULL){
         printf("no memory, we should evict\n");
-        p=evict();
-        if(p==NULL){
+        fte=evict();
+        if(fte==NULL){
             PANIC("really problem, eviction also made an error");
         }
 
         // we have to evict until getting the frame
         //after the eviction, if we cannot allocate page, that have to return false
-    }
-    //this is from page.c
-    // we must get the spte struct
-    // if not...
-    user_va = find_sup_page(addr);
-    if(user_va  == NULL){
-        free(fte);
-        lock_release(&frame_lock);
-        return false;
-    }
-
-    struct hash_elem *h =hash_insert(&frame_hash, &fte->helem);
-    lock_release(&frame_lock);
-    if (h ==NULL){
-        return false;
     }else{
-        fte->owner = thread_current();
-        fte->frame = p;
-        fte->pinned = true;
-        fte->spte = user_va;
-        return true;
+        struct hash_elem *h =hash_insert(&frame_hash, &fte->helem);
+        if (h ==NULL){
+            lock_release(&frame_lock);
+            return NULL;
+        }
     }
-
-}
+    fte->owner = thread_current();
+    //fte->frame = p;
+    fte->pinned = true;
+    fte->spte = NULL;
+    lock_release(&frame_lock);
+    return fte;
+    }
 
 bool
 free_frame(void *frame) // frame = kernel va
@@ -156,6 +148,7 @@ evict(){
     //size_t hashSize = hash_size(&frame_hash);
     struct frame_table_entry *f = NULL;
     int i;
+    lock_acquire(&evict_lock);
     //please prevent infinite loop
     /* second chance page replacement*/
     for(i=0; i<2; i++){
@@ -172,9 +165,13 @@ evict(){
                 f->spte->accessed = false;
                 continue;
             }
+            f->spte = NULL;
+            f->owner= thread_current();
+            lock_release(&evict_lock);
             return f;
         }
     };
+    lock_release(&evict_lock);
     return NULL;
 }
 

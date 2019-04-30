@@ -30,7 +30,7 @@ struct sup_page_table_entry
 };
 
 void sup_page_init (void);
-bool allocate_sup_page (void *addr);
+struct sup_page_table_entry * allocate_sup_page (void *addr);
 void free_sup_page (void *addr);
 struct sup_page_table_entry *find_sup_page (void *addr);
 

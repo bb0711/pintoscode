@@ -11,6 +11,9 @@ struct frame_table_entry
 };
 
 void frame_init (void);
-bool allocate_frame (void *addr);
+struct frame_table_entry* allocate_frame (void *addr, bool flag);
+bool free_frame(void *frame) ;
+struct frame_table_entry * find_frame(void * frame) ;
+struct frame_table_entry* evict();
 
 #endif /* vm/frame.h */
