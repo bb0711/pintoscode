@@ -94,7 +94,7 @@ allocate_frame (void *addr, bool flag)
         }
     }
     fte->owner = thread_current();
-    //fte->frame = p;
+    fte->frame = p;
     fte->pinned = true;
     fte->spte = NULL;
     lock_release(&frame_lock);

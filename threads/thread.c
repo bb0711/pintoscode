@@ -17,6 +17,7 @@
 #endif
 
 
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -454,7 +455,7 @@ init_thread (struct thread *t, const char *name, int priority)
             sema_init(&t->exit_lock,0);
             list_push_back(&(running_thread()->child_list),&t->child_elem);
             int i;
-            list_init(&t->fd_list);
+            //list_init(&t->fd_list);
             for (i=0; i<128; i++){t->open_files[i]=NULL;}
             for (i = 0; i < 128; i++){t->fd_list[i] = -1;}
 

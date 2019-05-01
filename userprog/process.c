@@ -1,3 +1,5 @@
+#include "vm/frame.h"
+#include "vm/page.h"
 #include "userprog/process.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -18,8 +20,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
-#include "vm/frame.h"
-#include "vm/page.h"
+
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -459,6 +460,8 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
   /* It's okay. */
   return true;
 }
+bool
+install_page_spte (void *upage, struct frame_table_entry* fte, bool writable);
 
 /* Loads a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
@@ -498,15 +501,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
         return false;
       if (fte->frame == NULL)
         return false;
-       uint8_t *kpage = fte->frame;
+      void *kpage = fte->frame;
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
           //palloc_free_page (kpage);
-          if( free_frame(kpage)){
+          bool check1 = free_frame(kpage);
+          if( check1){
             return false;
           }else{
-            printf("free frame error");
+            PANIC("free frame error");
           }
           return false;
         }
@@ -516,8 +520,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (!install_page_spte (upage, fte, writable))
         {
           //palloc_free_page (kpage);
-          free_frame(kpage);
-          return false;
+          bool check =free_frame(kpage);
+          if(check)
+            return false;
+          else
+            PANIC("Load, free frame error");
         }
 
       /* Advance. */
@@ -539,7 +546,8 @@ setup_stack (void **esp, const char *file_name)
 
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   fte = allocate_frame(PHYS_BASE- PGSIZE, true);
-  if (kpage != NULL)
+
+  if (fte != NULL)
     {
       success = install_page_spte (((uint8_t *) PHYS_BASE) - PGSIZE, fte, true);
       if (success)
@@ -626,18 +634,18 @@ install_page (void *upage, void *kpage, bool writable)
 }
 
 //for spte-fte
-static bool
+bool
 install_page_spte (void *upage, struct frame_table_entry* fte, bool writable)
 {
   struct thread *t = thread_current ();
-
+  struct sup_page_table_entry *target;
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
-  if(pagedir_get_page (t->pagedir, upage) == NULL
-               && pagedir_set_page (t->pagedir, upage, kpage, writable)){
+  if(pagedir_get_page (t->pagedir, upage) == NULL && pagedir_set_page (t->pagedir, upage, fte->frame, writable)){
 
-      if( find_sup_page(upage) == NULL){
-        struct sup_page_table_entry *target = allocate_sup_page(upage);
+      target = find_sup_page(upage);
+      if( target == NULL){
+        target = allocate_sup_page(upage);
         if( !target){
             target->kernel_vaddr = fte->frame;
             fte->spte= target;

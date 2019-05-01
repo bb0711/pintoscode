@@ -6,6 +6,11 @@
 #include <stdint.h>
 #include "threads/synch.h"
 #include "filesys/filesys.h"
+#ifdef VM
+#include "vm/frame.h"
+#include "vm/page.h"
+//#include "vm/swap.h"
+#endif
 
 /* States in a thread's life cycle. */
 enum thread_status
