@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="pintos" uploadOnCheckin="fe100a8c-4ace-452e-86ef-a399356f2b98">
+  <component name="PublishConfigData" autoUpload="Always" serverName="pintos" uploadOnCheckin="fe100a8c-4ace-452e-86ef-a399356f2b98">
     <serverData>
       <paths name="pintos">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
     </serverData>
     <option name="myUploadOnCheckinName" value="pintos" />
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>
