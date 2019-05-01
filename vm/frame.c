@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hash.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -142,7 +143,7 @@ find_frame(void * frame) //frame = kernel VA
 
 //eviction must be executed before the frame allocation, not after frame allocation.
 struct frame_table_entry*
-evict(){
+evict(void){
     struct hash_iterator it;
     //void * frame = NULL;
     //size_t hashSize = hash_size(&frame_hash);
