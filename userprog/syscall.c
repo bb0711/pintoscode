@@ -41,8 +41,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
   int * fesp = f -> esp;
   //int systemcall_num = *fesp;
-  //printf("syscall : %d\n", *fesp);
-  //hex_dump(f->esp, f->esp, 100, 1);
+  printf("syscall : %d\n", *fesp);
+  hex_dump(f->esp, f->esp, 100, 1);
 
   switch (*fesp)
   {
@@ -146,7 +146,7 @@ bool
 create (const char *file, unsigned initial_size)
 {
   if(file == NULL){
-    exit(-1);
+    exit(-2);
     return false;
   }
   if(strlen(file)==0)
@@ -181,7 +181,7 @@ open (const char *file)
   struct file * openfile = filesys_open (file);
   if (openfile == NULL){   // file could not be open
     lock_release(&sys_lock);
-    return -1;
+    return -3;
   }
   int i;
 
@@ -198,7 +198,7 @@ open (const char *file)
     }
   }
   lock_release(&sys_lock);
-  return -1;
+  return -3;
 }
 
 
@@ -234,6 +234,16 @@ read (int fd, void *buffer, unsigned size)
     return i;
 
   }else if (is_valid_fd(fd)){
+    void * rd = pg_round_down(buffer);
+    void * pg;
+    unsigned size_toread = (unsigned)(rd - buffer +PGSIZE);
+    unsigned read_byte=0;
+    for(pg= rd; pg <= buffer+size; pg += PGSIZE){
+        struct sup_page_table_entry *spte = allocate_sup_page(pg);
+        if(spte == NULL){
+            //have to implement
+        }
+    }
     off_t result = file_read (thread_current()->open_files[fd], buffer, size);
     lock_release(&sys_lock);
     return result;
@@ -334,7 +344,7 @@ close (int fd)
 // if you want to check the user's memory access is valid
 void is_valid_memory_access(const uint32_t *vaddr){
     if ((const uint32_t *) vaddr >= PHYS_BASE || vaddr == 0)
-        exit(-1);
+        exit(-4);
 }
 
 //read a byte at the given user virtual address UADDR.
