@@ -90,7 +90,7 @@ allocate_frame (void *addr, bool flag)
 
         // we have to evict until getting the frame
         //after the eviction, if we cannot allocate page, that have to return false
-
+    }
     struct hash_elem *h =hash_insert(&frame_hash, &fte->helem);
     if (h ==NULL){
         lock_release(&frame_lock);
@@ -147,10 +147,9 @@ find_frame(void * frame) //frame = kernel VA
 
 //eviction must be executed before the frame allocation, not after frame allocation.
 bool
-evict(void){
+evict(void)
+{
     struct hash_iterator it;
-    //void * frame = NULL;
-    //size_t hashSize = hash_size(&frame_hash);
     struct frame_table_entry *f = NULL;
     int i;
     lock_acquire(&evict_lock);
@@ -175,7 +174,7 @@ evict(void){
             free_frame(f->frame);
             lock_release(&evict_lock);
             return true;
-        }
+        };
     };
     lock_release(&evict_lock);
     return false;
