@@ -26,10 +26,14 @@
 #include "userprog/gdt.h"
 #include "userprog/syscall.h"
 #include "userprog/tss.h"
-//#include "vm/frame.h"
-//#include "vm/page.h"
 #else
 #include "tests/threads/tests.h"
+#endif
+
+#ifdef VM
+#include "vm/frame.h"
+#include "vm/page.h"
+//#include "vm/swap.h"
 #endif
 #ifdef FILESYS
 #include "devices/disk.h"
@@ -104,6 +108,11 @@ main (void)
 #ifdef USERPROG
   exception_init ();
   syscall_init ();
+#endif
+
+#ifdef VM
+  frame_init();
+
 #endif
 
   /* Start thread scheduler and enable interrupts. */

@@ -97,6 +97,9 @@ start_process (void *f_name)
   char *file_name = f_name;
   struct intr_frame if_;
   bool success;
+  struct thread * t =thread_current();
+  sup_page_init(t);
+
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -105,12 +108,12 @@ start_process (void *f_name)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
-  palloc_free_page (file_name);
+  //palloc_free_page (file_name);
 
   /* If load failed, quit. */
   if (!success){
-    //printf("load failed %s \n", thread_current()->exit_num);
-    thread_current()->exit_num =-1;
+    printf("load failed %s \n", t->name);
+    t->exit_num =-1;
     thread_exit ();
     //exit?
     }
@@ -209,12 +212,14 @@ process_activate (void)
 {
   struct thread *t = thread_current ();
 
+
   /* Activate thread's page tables. */
   pagedir_activate (t->pagedir);
 
   /* Set thread's kernel stack for use in processing
      interrupts. */
   tss_update ();
+
 }
 
 /* We load ELF binaries.  The following definitions are taken
@@ -285,6 +290,9 @@ static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
+static bool load_segment_spte (struct file *file, off_t ofs, uint8_t *upage,
+                          uint32_t read_bytes, uint32_t zero_bytes,
+                          bool writable);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
@@ -299,11 +307,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
-  if (t->pagedir == NULL) 
+  if (t->pagedir == NULL)
     goto done;
+
+  printf("%s", t->name);
+
   process_activate ();
 
   /* this is for parsing */
@@ -316,10 +326,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Open executable file. */
   file = filesys_open (copy_file_name);
 
-  if (file == NULL)
-      goto done;
+  if (file == NULL){
+    printf("file null err");
+    goto done;
+  }
 
-  file_deny_write(file); // for copy-on-write
+
+  //file_deny_write(file); // for copy-on-write
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -333,8 +346,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", file_name);
       goto done; 
   }
-
-
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
@@ -385,7 +396,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
                   read_bytes = 0;
                   zero_bytes = ROUND_UP (page_offset + phdr.p_memsz, PGSIZE);
                 }
-              if (!load_segment (file, file_page, (void *) mem_page,
+              if (!load_segment_spte (file, file_page, (void *) mem_page,
                                  read_bytes, zero_bytes, writable))
                 goto done;
             }
@@ -407,7 +418,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file);
 
   return success;
 }
@@ -517,9 +528,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
       /* Add the page to the process's address space. */
+      printf("frame set success");
       if (!install_page_spte (upage, fte, writable))
         {
           //palloc_free_page (kpage);
+          printf("here, spte error");
           bool check =free_frame(kpage);
           if(check)
             return false;
@@ -655,4 +668,41 @@ install_page_spte (void *upage, struct frame_table_entry* fte, bool writable)
       }
    }
    return false;
+}
+//just call the spte, kpage is null => fill by install_page_spte
+static bool load_segment_spte (struct file *file, off_t ofs, uint8_t *upage,
+                          uint32_t read_bytes, uint32_t zero_bytes,
+                          bool writable)
+{
+    ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
+    ASSERT (pg_ofs (upage) == 0);
+    ASSERT (ofs % PGSIZE == 0);
+
+    file_seek (file, ofs);
+    while (read_bytes > 0 || zero_bytes > 0)
+    {
+      /* Do calculate how to fill this page.
+         We will read PAGE_READ_BYTES bytes from FILE
+         and zero the final PAGE_ZERO_BYTES bytes. */
+      size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+      size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+      struct sup_page_table_entry * spte = allocate_sup_page(upage);
+      spte->file = file;
+      spte->ofs= ofs;
+      spte->read_bytes= page_read_bytes;
+      spte->zero_bytes= page_zero_bytes;
+      spte->writable = writable;
+      spte->type = FILE;
+
+      /* Advance. */
+      read_bytes -= page_read_bytes;
+      zero_bytes -= page_zero_bytes;
+      upage += PGSIZE;
+
+      ofs += PGSIZE;
+    }
+    file_seek(file,ofs);
+    file_deny_write(file);
+    return true;
 }

@@ -52,7 +52,7 @@ void
 frame_init (void)
 {
     lock_init(&frame_lock);
-    lock_init(&evict_lock)
+    lock_init(&evict_lock);
     hash_init(&frame_hash, fr_hash_func, fr_less_func, NULL);
 
 }
@@ -76,30 +76,32 @@ allocate_frame (void *addr, bool flag)
         return NULL;
     }
     //void *p =palloc_get_page(PAL_USER);// returns kernel virtual addr for page of user pool.
-    void *p = palloc_get_page(PAL_USER | (flag ? PAL_ZERO: 0)
+    void *p = palloc_get_page(PAL_USER | (flag ? PAL_ZERO: 0));
     if( p == NULL){
         printf("no memory, we should evict\n");
-        fte=evict();
-        if(fte==NULL){
+        bool check_evict = evict();
+
+        if(check_evict==NULL){
             PANIC("really problem, eviction also made an error");
         }
+        p = palloc_get_page(PAL_USER | (flag ? PAL_ZERO: 0));
 
         // we have to evict until getting the frame
         //after the eviction, if we cannot allocate page, that have to return false
-    }else{
-        struct hash_elem *h =hash_insert(&frame_hash, &fte->helem);
-        if (h ==NULL){
-            lock_release(&frame_lock);
-            return NULL;
-        }
+
+    struct hash_elem *h =hash_insert(&frame_hash, &fte->helem);
+    if (h ==NULL){
+        lock_release(&frame_lock);
+        return NULL;
     }
+
     fte->owner = thread_current();
     fte->frame = p;
     fte->pinned = true;
     fte->spte = NULL;
     lock_release(&frame_lock);
     return fte;
-    }
+};
 
 bool
 free_frame(void *frame) // frame = kernel va
@@ -110,7 +112,7 @@ free_frame(void *frame) // frame = kernel va
     fte2-> frame = frame;
 
     lock_acquire(&frame_lock);
-    struct hash_elem *target_fr = hash_find(&frame_hash, &fte2->hash_elem);
+    struct hash_elem *target_fr = hash_find(&frame_hash, &fte2->helem);
     if(target_fr !=NULL){
         struct frame_table_entry *fte = hash_entry(target_fr, struct frame_table_entry, helem);
         palloc_free_page(frame);
@@ -142,7 +144,7 @@ find_frame(void * frame) //frame = kernel VA
 }
 
 //eviction must be executed before the frame allocation, not after frame allocation.
-struct frame_table_entry*
+bool
 evict(void){
     struct hash_iterator it;
     //void * frame = NULL;
@@ -159,6 +161,9 @@ evict(void){
             f = hash_entry (hash_cur (&i), struct frame_table_entry, helem);
             if(f->pinned){
                 continue;
+            }else if(f->spte == NULL){
+                PANIC("frame is not mapped to page")
+            }
             }else if(f->spte->accessed == true){
                 //for next turn, so you can use it
                 // can I change it by myself??
@@ -166,13 +171,12 @@ evict(void){
                 f->spte->accessed = false;
                 continue;
             }
-            f->spte = NULL;
-            f->owner= thread_current();
+            free_frame(f->frame);
             lock_release(&evict_lock);
-            return f;
+            return true;
         }
     };
     lock_release(&evict_lock);
-    return NULL;
+    return false;
 }
 

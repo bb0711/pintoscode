@@ -217,11 +217,6 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
 
   /*after init_thread-> create thread (except for main thread)*/
-  #ifdef USERPROG
-        //if(tid >2){
-
-        //    }
-  #endif
 
 
   /* Add to run queue. */
@@ -450,18 +445,15 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->lock_list);
 
   #ifdef USERPROG
-            list_init(&t->child_list);
-            sema_init(&(t->sema_child),0);
-            sema_init(&t->exit_lock,0);
-            list_push_back(&(running_thread()->child_list),&t->child_elem);
-            int i;
-            //list_init(&t->fd_list);
-            for (i=0; i<128; i++){t->open_files[i]=NULL;}
-            for (i = 0; i < 128; i++){t->fd_list[i] = -1;}
-
+        list_init(&t->child_list);
+        sema_init(&(t->sema_child),0);
+        sema_init(&t->exit_lock,0);
+        list_push_back(&(running_thread()->child_list),&t->child_elem);
+        int i;
+        //list_init(&t->fd_list);
+        for (i=0; i<128; i++){t->open_files[i]=NULL;}
+        for (i = 0; i < 128; i++){t->fd_list[i] = -1;}
   #endif
-
-
 
   }
 

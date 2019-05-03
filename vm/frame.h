@@ -19,7 +19,7 @@ void frame_init (void);
 struct frame_table_entry* allocate_frame (void *addr, bool flag);
 bool free_frame(void *frame) ;
 struct frame_table_entry * find_frame(void * frame) ;
-struct frame_table_entry* evict(void);
+bool evict(void);
 
 static unsigned fr_hash_func(const struct hash_elem *elem, void *aux);
 static bool fr_less_func(const struct hash_elem *a, const struct hash_elem *b, void *aux );
