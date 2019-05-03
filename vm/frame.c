@@ -44,6 +44,8 @@ static bool fr_less_func(const struct hash_elem *a, const struct hash_elem *b, v
   struct frame_table_entry *big = hash_entry(b, struct frame_table_entry, helem);
   return ((small->frame) < (big->frame));
 }
+bool free_frame(void *frame);
+bool evict(void);
 
 /*
  * Initialize frame table
@@ -158,12 +160,11 @@ evict(void){
         hash_first (&it, &frame_hash);
         while (hash_next (&it))
         {
-            f = hash_entry (hash_cur (&i), struct frame_table_entry, helem);
+            f = hash_entry (hash_cur (&it), struct frame_table_entry, helem);
             if(f->pinned){
                 continue;
             }else if(f->spte == NULL){
-                PANIC("frame is not mapped to page")
-            }
+                PANIC("frame is not mapped to page");
             }else if(f->spte->accessed == true){
                 //for next turn, so you can use it
                 // can I change it by myself??
