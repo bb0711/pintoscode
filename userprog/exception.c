@@ -5,9 +5,14 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
+#include "vm/frame.h"
+
+#define MAX_STACK_SIZE (1 << 23)
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
+
 
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
@@ -150,11 +155,23 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
 // this is for checking memory access
-  if(!user || is_kernel_vaddr(fault_addr) || fault_addr == NULL || not_present) { //!user ||
+  if(!user || is_kernel_vaddr(fault_addr) || fault_addr == NULL || !not_present) { //!user ||
     //printf("here: %p \n", fault_addr);
     exit(-1);
     }
-    //exit(-1);
+
+  struct sup_page_table_entry *spte = find_sup_page (pg_round_down(fault_addr));
+
+  if(spte!= NULL && (fault_addr > USER_VADDR_BOTTOM)) {
+  //have to implement (bool) load_page => for 3 types
+    if (load_page(spte))
+        return;
+    // page is not in spt
+  }else if(fault_addr >= (f->esp - 32) && (PHYS_BASE - pg_round_down(fault_addr)) <= MAX_STACK_SIZE ){//valid fault addr, esp
+        //modify it : addr -> bool
+        if(build_stack_spte(fault_addr))
+            return;
+  }
 
 
   /* To implement virtual memory, delete the rest of the function

@@ -65,7 +65,7 @@ allocate_sup_page (void *addr)
     }
 
     //spte->type = t;
-    spte->user_vaddr = addr;
+    spte->user_vaddr = pg_round_down(addr);
     spte->kernel_vaddr = NULL;
     // spte->access_time = NULL;
     spte->dirty = false;
@@ -113,4 +113,27 @@ struct sup_page_table_entry *find_sup_page (void *addr)
     }else{
         return NULL;
     }
+}
+//user va
+bool build_stack_spte(void * addr){
+
+    ASSERT((PHYS_BASE - pg_round_down(upage)) > MAX_STACK_SIZE);
+
+    struct frame_table_entry *fte = allocate_frame(addr, 1); //Clear the frame and then allocate
+    if(fte){//add the page to the process addr space
+        struct sup_page_table_entry *spte = allocate_sup_page(addr);
+        if(spte){
+            spte->writable = true;
+            spte->kernel_vaddr = fte->frame;
+            fte->spte = spte;
+            fte->pinned = false;
+            return true;
+        }else{
+            free_frame(fte->frame);
+            return false;
+        }
+    }else{
+        return false;
+    }
+
 }

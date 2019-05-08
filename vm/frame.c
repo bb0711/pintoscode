@@ -99,7 +99,7 @@ allocate_frame (void *addr, bool flag)
 
     fte->owner = thread_current();
     fte->frame = p;
-    fte->pinned = true;
+    fte->pinned = true; // if true: cannot evict
     fte->spte = NULL;
     lock_release(&frame_lock);
     return fte;

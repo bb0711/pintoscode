@@ -5,6 +5,8 @@
 #include "filesys/file.h"
 #include "threads/thread.h"
 
+
+
 enum spte_type
 {
     FILE=0,
@@ -40,5 +42,6 @@ void sup_page_init (struct thread * t);
 struct sup_page_table_entry * allocate_sup_page (void *addr);
 void free_sup_page (void *addr);
 struct sup_page_table_entry *find_sup_page (void *addr);
+bool build_stack_spte(void * addr fault_addr);
 
 #endif /* vm/page.h */

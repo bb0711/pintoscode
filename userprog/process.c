@@ -528,13 +528,10 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
       /* Add the page to the process's address space. */
-      printf("frame set success");
       if (!install_page_spte (upage, fte, writable))
         {
           //palloc_free_page (kpage);
-          printf("here, spte error");
-          bool check =free_frame(kpage);
-          if(check)
+          if(free_frame(kpage))
             return false;
           else
             PANIC("Load, free frame error");
@@ -565,9 +562,11 @@ setup_stack (void **esp, const char *file_name)
       success = install_page_spte (((uint8_t *) PHYS_BASE) - PGSIZE, fte, true);
       if (success)
         *esp = PHYS_BASE;
-      else
+      else{
         //palloc_free_page (kpage);
         free_frame(fte->frame);
+        return false;
+      }
     }
 
     /* this is for parsing */
